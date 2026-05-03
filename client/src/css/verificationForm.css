@@ -1,0 +1,44 @@
+.verificationForm {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 350px;
+  min-width: 332px;
+  background-color: white;
+  border-radius: 10px;
+  padding: 2em;
+  text-align: center;
+  gap: 20px;
+  position: relative;
+}
+
+.content p:first-child {
+  margin-bottom: 10px;
+}
+
+.content p:first-child span {
+  color: rgba(0, 0, 255, 0.73);
+}
+
+.content {
+  line-height: 1.2;
+}
+
+.verificationForm button {
+  padding: 1em 1.5em;
+  max-width: 150px;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  background-color: rgba(11, 11, 133, 0.679);
+}
+
+.resend-success {
+  border: 1px solid black;
+  position: absolute;
+  top: 10px;
+  padding: 5px 8px;
+  border-radius: 5px;
+}

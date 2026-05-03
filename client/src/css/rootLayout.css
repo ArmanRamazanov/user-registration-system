@@ -1,0 +1,47 @@
+* {
+  margin: 0;
+  padding: 0;
+}
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1em 2em;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.104);
+}
+
+header p {
+  color: white;
+  font-size: 2rem;
+}
+
+header a {
+  color: white;
+  text-decoration: none;
+  font-size: 1.2rem;
+  border: 1px solid rgba(255, 255, 255, 0.266);
+  padding: 0.5em 2em;
+}
+
+header button {
+  color: white;
+  text-decoration: none;
+  font-size: 1.1rem;
+  background: none;
+  border: 1px solid rgba(255, 255, 255, 0.266);
+  padding: 0.5em 2em;
+  cursor: pointer;
+}
+
+header div {
+  display: flex;
+  gap: 5px;
+}
+
+section {
+  width: 100vw;
+  height: calc(100vh - 75.2px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}

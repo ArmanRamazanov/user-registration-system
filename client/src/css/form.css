@@ -1,0 +1,55 @@
+.form-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 20px;
+  min-height: 350px;
+  min-width: 332px;
+  max-width: 466px;
+  background-color: white;
+  border-radius: 10px;
+  padding: 2em;
+}
+
+.form-card div {
+  display: flex;
+  gap: 10px;
+}
+
+.form-card h2 {
+  text-align: center;
+  color: rgba(0, 0, 0, 0.618);
+}
+
+.form-card form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+.form-card form input {
+  padding: 0.8em 1.2em;
+  border-radius: 10px;
+  border: 1px solid rgba(0, 0, 0, 0.419);
+  width: 100%;
+}
+
+.form-card button {
+  padding: 1em;
+  background-color: rgba(11, 11, 133, 0.679);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.form-card footer {
+  display: flex;
+  justify-content: center;
+  gap: 5px;
+}
+
+.error {
+  color: red;
+}

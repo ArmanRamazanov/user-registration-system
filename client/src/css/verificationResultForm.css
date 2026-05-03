@@ -1,0 +1,26 @@
+.verificationResultForm {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  background-color: white;
+  padding: 20px 30px;
+  min-width: 332px;
+  border-radius: 10px;
+  min-height: 150px;
+}
+
+.verificationResultForm h2 {
+  text-transform: capitalize;
+}
+
+.loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: white;
+  padding: 20px 30px;
+  min-width: 332px;
+  border-radius: 10px;
+  min-height: 150px;
+}
