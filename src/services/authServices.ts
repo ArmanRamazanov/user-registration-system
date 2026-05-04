@@ -3,6 +3,7 @@ import type {
   User,
   userWithoutPassword,
   LoginInput,
+  UpdateInput,
 } from "../types/User.types";
 import { sendEmail } from "../utils/emailService";
 import jwt, { type JwtPayload } from "jsonwebtoken";
@@ -17,12 +18,14 @@ export function generateToken(email: string, exp: number) {
 }
 
 export function generateRefreshToken(email: string) {
-  const token = jwt.sign(email, process.env.REFRESH_TOKEN!);
+  const user = { email };
+  const token = jwt.sign(user, process.env.REFRESH_TOKEN!, {
+    expiresIn: "7d",
+  });
   return token;
 }
 
 export async function signup(input: SignupInput): Promise<userWithoutPassword> {
-  console.log("signup is reached");
   const { email, password, firstName, lastName, username } = input;
   const token = generateToken(email, 5);
 
@@ -44,21 +47,25 @@ export async function signup(input: SignupInput): Promise<userWithoutPassword> {
   return await db.register(newUser);
 }
 
-export function emailVerification(token: string): Promise<true> {
-  return db.verify(token);
+export async function emailVerification(token: string): Promise<true> {
+  return await db.verify(token);
 }
 
 export async function resendEmail(input: SignupInput): Promise<true> {
   const { email } = input;
   const token = generateToken(email, 5);
 
-  return db.resendEmail(email, token);
+  return await db.resendEmail(email, token);
 }
 
 export async function login(
   input: LoginInput,
 ): Promise<{ accessToken: string; refreshToken: string }> {
-  return db.authenticate(input);
+  return await db.authenticate(input);
+}
+
+export async function update(id: string, input: UpdateInput) {
+  return await db.update(id, input);
 }
 
 export async function newTokenGeneration(
@@ -87,5 +94,5 @@ export async function newTokenGeneration(
 }
 
 export async function getUser(email: string): Promise<userWithoutPassword> {
-  return db.getUser(email);
+  return await db.getUser(email);
 }

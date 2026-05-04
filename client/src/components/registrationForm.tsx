@@ -39,15 +39,11 @@ export default function RegistrationForm() {
   });
 
   async function onSubmit(input: FormData) {
-    console.log("before request");
-
     const result = await fetch("http://localhost:4000/api/auth/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(input),
     });
-
-    console.log("after request");
 
     const { success, data, message } = await result.json();
 

@@ -24,7 +24,14 @@ export type SignupInput = Omit<
   "profile" | "isVerified" | "verificationToken"
 > & {
   firstName: string;
-  lastName: string | null;
+  lastName?: string;
 };
 
 export type LoginInput = Pick<User, "email" | "password">;
+
+export type UpdateInput = Partial<
+  Omit<SignupInput, "password"> & {
+    bio?: string;
+    newPassword?: string;
+  }
+>;

@@ -8,7 +8,6 @@ import {
 
 export default function MainPage() {
   const { user } = useLoaderData();
-  console.log(user);
 
   return user ? (
     <div className="main-page">
@@ -29,8 +28,6 @@ export async function loader() {
     const response = await fetch("http://localhost:4000/api/auth/main", {
       headers: { Authorization: `Bearer ${token}` },
     });
-
-    console.log(response);
 
     if (response.status === 403) {
       const response = await fetch("http://localhost:4000/api/auth/token", {

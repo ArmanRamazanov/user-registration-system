@@ -5,12 +5,14 @@ import type { Request, Response, NextFunction } from "express";
 import { connectToDatabase } from "./db/dbConnection";
 import cors from "cors";
 import { errorHandler } from "./errorHandler";
+import cookieParser from "cookie-parser";
 
 const app = express();
 const PORT = process.env.PORT;
 connectToDatabase((err) => {
   if (!err) {
     app.use(express.json());
+    app.use(cookieParser());
     app.use(
       cors({
         origin: "http://localhost:5173",

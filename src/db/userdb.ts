@@ -1,6 +1,7 @@
 import { UserModel } from "../models/User";
 import type {
   LoginInput,
+  UpdateInput,
   User,
   userWithoutPassword,
 } from "../types/User.types";
@@ -20,8 +21,54 @@ class UserDB {
       throw dbErrorHandler(error);
     }
   }
+
+  async update(id: string, input: UpdateInput): Promise<userWithoutPassword> {
+    try {
+      const user = await UserModel.findById(id);
+
+      if (!user) {
+        throw {
+          status: 404,
+          field: null,
+          message: "The user was not found",
+          isManual: true,
+        };
+      }
+
+      const { email, newPassword, firstName, lastName, username, bio } = input;
+
+      if (email) {
+        user.email = email;
+      }
+      if (newPassword) {
+        user.password = newPassword;
+      }
+      if (firstName) {
+        user.profile.firstName = firstName;
+      }
+      if (lastName) {
+        user.profile.lastName = lastName;
+      }
+      if (username) {
+        user.username = username;
+      }
+      if (bio) {
+        user.profile.bio = bio;
+      }
+
+      const { password, ...userWithoutPassword } = user.toObject();
+      await user.save();
+
+      return userWithoutPassword;
+    } catch (error) {
+      throw dbErrorHandler(error);
+    }
+  }
+
   async verify(token: string): Promise<true> {
     try {
+      const payload = jwt.verify(token, process.env.ACCESS_TOKEN!);
+
       const user = await UserModel.findOne({ verificationToken: token });
 
       if (!user) {
@@ -33,19 +80,8 @@ class UserDB {
         };
       }
 
-      jwt.verify(token, process.env.ACCESS_TOKEN!, (err, decoded) => {
-        if (err) {
-          throw {
-            status: 400,
-            field: null,
-            message: "Invalid or expired verification link",
-            isManual: true,
-          };
-        }
-
-        user.verificationToken = null;
-        user.isVerified = true;
-      });
+      user.verificationToken = null;
+      user.isVerified = true;
 
       await user.save();
       return true;
@@ -80,7 +116,6 @@ class UserDB {
     input: LoginInput,
   ): Promise<{ accessToken: string; refreshToken: string }> {
     try {
-      console.log("authenticate reached");
       const { email, password } = input;
 
       const user = await UserModel.findOne({ email: email });
@@ -90,6 +125,15 @@ class UserDB {
           status: 404,
           field: "email",
           message: "The user with this email was not found",
+          isManual: true,
+        };
+      }
+
+      if (!user.isVerified) {
+        throw {
+          status: 403,
+          field: null,
+          message: "The user has not verified his account yet",
           isManual: true,
         };
       }
@@ -115,7 +159,8 @@ class UserDB {
     try {
       const user = (await UserModel.findOne({
         email: email,
-      })) as userWithoutPassword;
+      }).select("-password")) as userWithoutPassword;
+
       return user;
     } catch (error) {
       throw dbErrorHandler(error);

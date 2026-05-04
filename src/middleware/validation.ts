@@ -34,7 +34,7 @@ export async function validateCreate(
   res: Response<ApiResponse<{}[]>>,
   next: NextFunction,
 ) {
-  const { username, email, password, firstName, lastName, bio } = req.body;
+  const { username, email, password, firstName, lastName } = req.body;
   const errors = [];
 
   if (username !== undefined && typeof username !== "string") {
@@ -103,12 +103,73 @@ export async function validateCreate(
     });
   }
 
-  if (bio && !bio.trim().length) {
-    errors.push({ field: "bio", message: "The property bio cannot be empty" });
+  if (errors.length) {
+    res.status(400).json({
+      success: false,
+      data: errors,
+      message: null,
+    });
+  } else {
+    next();
+  }
+}
+
+export async function validateUpdate(
+  req: Request,
+  res: Response<ApiResponse<{}[]>>,
+  next: NextFunction,
+) {
+  const { username, email, newPassword, firstName, lastName, bio } = req.body;
+  const errors = [];
+
+  if (username !== undefined && typeof username !== "string") {
+    errors.push("The username property must be a string");
+    return errors;
   }
 
-  if (bio && typeof bio !== "string") {
-    errors.push({ field: "bio", message: "The property bio must be string" });
+  if (username !== undefined && !username.trim().length) {
+    errors.push("The username property cannot be empty");
+  }
+
+  if (email !== undefined && typeof email !== "string") {
+    errors.push("The email property must be a string");
+    return errors;
+  }
+
+  if (email !== undefined && !email.trim().length) {
+    errors.push("The email property is required");
+  }
+
+  if (newPassword !== undefined && !validateEmail(newPassword)) {
+    errors.push("The password property is invalid");
+  }
+
+  if (newPassword !== undefined && !newPassword.trim().length) {
+    errors.push("The password property cannot be empty");
+  }
+
+  if (firstName !== undefined && !firstName.trim().length) {
+    errors.push("The firstName property cannot be empty");
+  }
+
+  if (firstName !== undefined && typeof firstName !== "string") {
+    errors.push("The firstName property must be string");
+  }
+
+  if (lastName !== undefined && !lastName.trim().length) {
+    errors.push("The lastName property cannot be empty");
+  }
+
+  if (lastName !== undefined && typeof lastName !== "string") {
+    errors.push("The lastName property must be string");
+  }
+
+  if (bio !== undefined && !bio.trim().length) {
+    errors.push("The property bio cannot be empty");
+  }
+
+  if (bio !== undefined && typeof bio !== "string") {
+    errors.push("The property bio must be string");
   }
 
   if (errors.length) {

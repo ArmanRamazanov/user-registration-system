@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-export function dbErrorHandler(error: any) {
+export function dbErrorHandler(error: unknown) {
   if (error instanceof mongoose.Error.ValidationError) {
     const details = Object.values(error.errors).map((err) => ({
       field: err.path,
@@ -21,6 +21,16 @@ export function dbErrorHandler(error: any) {
     return {
       status: 409,
       details,
+    };
+  }
+
+  if (
+    (error as { name: string }).name === "TokenExpiredError" ||
+    (error as { name: string }).name === "JsonWebTokenError"
+  ) {
+    return {
+      status: 400,
+      message: "Invalid or expired token",
     };
   }
 

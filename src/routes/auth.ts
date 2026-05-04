@@ -7,6 +7,7 @@ import {
   resendEmail,
   signup,
   getUser,
+  update,
 } from "../services/authServices";
 import type { ApiResponse, userWithoutPassword } from "../types/User.types";
 import jwt from "jsonwebtoken";
@@ -79,7 +80,7 @@ router.post(
     next: NextFunction,
   ) => {
     try {
-      const result = await newTokenGeneration(req.body.token);
+      const result = await newTokenGeneration(req.cookies.refreshToken);
       res.json({
         success: true,
         data: result,
@@ -144,6 +145,28 @@ router.post(
   },
 );
 
+router.patch(
+  "/:id/update",
+  async (
+    req: Request<{ id: string }>,
+    res: Response<ApiResponse<userWithoutPassword>>,
+    next: NextFunction,
+  ) => {
+    try {
+      const { id } = req.params;
+      const result = await update(id, req.body);
+
+      res.json({
+        success: true,
+        data: result,
+        message: null,
+      });
+    } catch (error) {
+      throw error;
+    }
+  },
+);
+
 router.post(
   "/register",
   registerSanitization,
@@ -154,7 +177,6 @@ router.post(
     next: NextFunction,
   ) => {
     try {
-      console.log("register is reached");
       const result = await signup(req.body);
 
       res.status(201).json({
@@ -176,7 +198,6 @@ router.post(
     next: NextFunction,
   ) => {
     try {
-      console.log("resend reached");
       const result = await resendEmail(req.body);
 
       res.json({
