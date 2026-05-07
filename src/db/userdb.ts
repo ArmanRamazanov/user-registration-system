@@ -1,15 +1,22 @@
 import { UserModel } from "../models/User";
-import type {
-  LoginInput,
-  UpdateInput,
-  User,
-  userWithoutPassword,
+import {
+  Role,
+  type LoginInput,
+  type UpdateInput,
+  type User,
+  type userWithoutPassword,
 } from "../types/User.types";
 import { sendEmail } from "../utils/emailService";
 import bcrypt from "bcrypt";
-import { generateRefreshToken, generateToken } from "../services/authServices";
+import {
+  generateAccessToken,
+  generateRefreshToken,
+  generateToken,
+} from "../services/authServices";
 import { dbErrorHandler } from "./dbErrorHandler";
 import jwt from "jsonwebtoken";
+import type { JwtPayload } from "jsonwebtoken";
+import redis from "./redis-db";
 
 class UserDB {
   async register(newUser: User): Promise<userWithoutPassword> {
@@ -35,14 +42,8 @@ class UserDB {
         };
       }
 
-      const { email, newPassword, firstName, lastName, username, bio } = input;
+      const { firstName, lastName, username, bio } = input;
 
-      if (email) {
-        user.email = email;
-      }
-      if (newPassword) {
-        user.password = newPassword;
-      }
       if (firstName) {
         user.profile.firstName = firstName;
       }
@@ -67,9 +68,12 @@ class UserDB {
 
   async verify(token: string): Promise<true> {
     try {
-      const payload = jwt.verify(token, process.env.ACCESS_TOKEN!);
+      const payload = jwt.verify(
+        token,
+        process.env.ACCESS_TOKEN!,
+      ) as JwtPayload;
 
-      const user = await UserModel.findOne({ verificationToken: token });
+      const user = await UserModel.findOne({ email: payload.email });
 
       if (!user) {
         throw {
@@ -85,6 +89,40 @@ class UserDB {
 
       await user.save();
       return true;
+    } catch (error) {
+      throw dbErrorHandler(error);
+    }
+  }
+
+  async newTokenGeneration(refreshToken: string): Promise<string> {
+    try {
+      if (!refreshToken) {
+        throw {
+          status: 401,
+          message: "The refresh token was not provided",
+          isManual: true,
+        };
+      }
+
+      const refreshTokenPayload = jwt.verify(
+        refreshToken,
+        process.env.REFRESH_TOKEN!,
+      ) as JwtPayload;
+
+      if (!redis.get(`refreshToken:jti:${refreshTokenPayload.jti}`)) {
+        throw {
+          status: 401,
+          message: "The refresh token is no longer available",
+          isManual: true,
+        };
+      }
+
+      const accessToken = generateAccessToken(
+        refreshTokenPayload.sub!,
+        refreshTokenPayload.role,
+      );
+
+      return accessToken;
     } catch (error) {
       throw dbErrorHandler(error);
     }
@@ -107,6 +145,20 @@ class UserDB {
       await user.save();
       await sendEmail(token, email);
       return true;
+    } catch (error) {
+      throw dbErrorHandler(error);
+    }
+  }
+
+  async changeToAdmin(email: string): Promise<userWithoutPassword | null> {
+    try {
+      const user = await UserModel.findOne({ email: email }).select(
+        "-password",
+      );
+      if (user) {
+        user.role = Role.Admin;
+      }
+      return user;
     } catch (error) {
       throw dbErrorHandler(error);
     }
@@ -139,9 +191,9 @@ class UserDB {
       }
 
       if (await bcrypt.compare(password, user.password)) {
-        const token = generateToken(email, 15);
-        const refreshToken = generateRefreshToken(email);
-        return { accessToken: token, refreshToken };
+        const accessToken = generateAccessToken(user.id, user.role);
+        const refreshToken = generateRefreshToken(user.id, user.role);
+        return { accessToken, refreshToken };
       } else {
         throw {
           status: 400,
@@ -155,13 +207,21 @@ class UserDB {
     }
   }
 
-  async getUser(email: string): Promise<userWithoutPassword> {
+  async getUser(id: string): Promise<userWithoutPassword> {
     try {
-      const user = (await UserModel.findOne({
-        email: email,
-      }).select("-password")) as userWithoutPassword;
+      const user = (await UserModel.findById(id).select(
+        "-password",
+      )) as userWithoutPassword;
 
       return user;
+    } catch (error) {
+      throw dbErrorHandler(error);
+    }
+  }
+
+  async getUsers(): Promise<userWithoutPassword[]> {
+    try {
+      return await UserModel.find({});
     } catch (error) {
       throw dbErrorHandler(error);
     }

@@ -4,10 +4,16 @@ export type ApiResponse<T> = {
   message: string | null;
 };
 
+export enum Role {
+  Admin = "admin",
+  User = "user",
+}
+
 export interface User {
   username: string;
   password: string;
   email: string;
+  role: Role;
   profile: {
     firstName: string;
     lastName: string | null;
@@ -30,8 +36,7 @@ export type SignupInput = Omit<
 export type LoginInput = Pick<User, "email" | "password">;
 
 export type UpdateInput = Partial<
-  Omit<SignupInput, "password"> & {
+  Omit<SignupInput, "password" | "email" | "role"> & {
     bio?: string;
-    newPassword?: string;
   }
 >;

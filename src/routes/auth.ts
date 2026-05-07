@@ -8,14 +8,19 @@ import {
   signup,
   getUser,
   update,
+  getUsers,
+  logout,
 } from "../services/authServices";
 import type { ApiResponse, userWithoutPassword } from "../types/User.types";
 import jwt from "jsonwebtoken";
+import type { JwtPayload } from "jsonwebtoken";
 import { validateCreate } from "../middleware/validation";
 import {
   registerSanitization,
   LoginSanitization,
 } from "../middleware/sanitize";
+
+import redis from "../db/redis-db";
 
 export const router = Router();
 
@@ -33,7 +38,7 @@ export async function authorize(
         message: "Token was not provided",
       });
 
-    jwt.verify(token, process.env.ACCESS_TOKEN!, (err, decoded) => {
+    jwt.verify(token, process.env.ACCESS_TOKEN!, async (err, decoded) => {
       if (err) {
         return res.status(403).json({
           success: false,
@@ -41,16 +46,40 @@ export async function authorize(
           message: "Invalid token",
         });
       }
-      req.user = (decoded as { email: string }).email;
+      if (await redis.get(`accessToken:jti:${(decoded as JwtPayload).jti!}`)) {
+        return res.status(401).json({
+          success: false,
+          data: null,
+          message: "Token is no longer available",
+        });
+      }
+      req.userId = (decoded as JwtPayload).sub!;
+      req.role = (decoded as JwtPayload).role!;
       next();
     });
   } catch (error) {
-    throw error;
+    next(error);
   }
 }
 
+async function checkAdmin(
+  req: Request,
+  res: Response<ApiResponse<null>>,
+  next: NextFunction,
+) {
+  const role = req.role;
+  if (role !== "admin") {
+    return res.status(403).json({
+      success: false,
+      data: null,
+      message: "The user cannot access this data",
+    });
+  }
+  next();
+}
+
 router.get(
-  "/main",
+  "/me",
   authorize,
   async (
     req: Request,
@@ -58,16 +87,59 @@ router.get(
     next: NextFunction,
   ) => {
     try {
-      if (req.user) {
-        const user = await getUser(req.user);
-        res.json({
-          success: true,
-          data: user,
-          message: null,
-        });
-      }
+      const user = await getUser(req.userId);
+      res.json({
+        success: true,
+        data: user,
+        message: null,
+      });
     } catch (error) {
-      throw error;
+      next(error);
+    }
+  },
+);
+
+router.get(
+  "/admin/users",
+  authorize,
+  checkAdmin,
+  async (
+    req: Request,
+    res: Response<ApiResponse<userWithoutPassword[]>>,
+    next: NextFunction,
+  ) => {
+    try {
+      const result = await getUsers();
+      res.json({
+        success: true,
+        data: result,
+        message: null,
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+);
+
+router.get(
+  "/admin/users/:id",
+  authorize,
+  checkAdmin,
+  async (
+    req: Request<{ id: string }>,
+    res: Response<ApiResponse<userWithoutPassword>>,
+    next: NextFunction,
+  ) => {
+    try {
+      const { id } = req.params;
+      const result = await getUser(id);
+      res.json({
+        success: true,
+        data: result,
+        message: null,
+      });
+    } catch (error) {
+      next(error);
     }
   },
 );
@@ -87,7 +159,7 @@ router.post(
         message: "The new token was successfully generated",
       });
     } catch (error) {
-      throw error;
+      next(error);
     }
   },
 );
@@ -115,7 +187,7 @@ router.post(
         message: "The user was successfully logged in",
       });
     } catch (error) {
-      throw error;
+      next(error);
     }
   },
 );
@@ -128,25 +200,33 @@ router.post(
     next: NextFunction,
   ) => {
     try {
-      res.clearCookie("refreshToken", {
-        httpOnly: true,
-        secure: true,
-        sameSite: "strict",
-      });
+      const accessToken = req.headers["authorization"]?.split(" ")[1];
 
-      res.json({
-        success: true,
-        data: null,
-        message: "The user successfully logged out",
-      });
+      const result = await logout(req.cookies.refreshToken, accessToken);
+
+      if (result) {
+        res.clearCookie("refreshToken", {
+          httpOnly: true,
+          secure: true,
+          sameSite: "strict",
+        });
+
+        res.json({
+          success: true,
+          data: null,
+          message: "The user successfully logged out",
+        });
+      }
     } catch (error) {
-      throw error;
+      next(error);
     }
   },
 );
 
 router.patch(
-  "/:id/update",
+  "/admin/users/:id",
+  authorize,
+  checkAdmin,
   async (
     req: Request<{ id: string }>,
     res: Response<ApiResponse<userWithoutPassword>>,
@@ -162,7 +242,29 @@ router.patch(
         message: null,
       });
     } catch (error) {
-      throw error;
+      next(error);
+    }
+  },
+);
+router.patch(
+  "/me",
+  authorize,
+  async (
+    req: Request,
+    res: Response<ApiResponse<userWithoutPassword>>,
+    next: NextFunction,
+  ) => {
+    try {
+      const userId = req.userId;
+      const result = await update(userId, req.body);
+
+      return res.json({
+        success: true,
+        data: result,
+        message: null,
+      });
+    } catch (error) {
+      next(error);
     }
   },
 );
